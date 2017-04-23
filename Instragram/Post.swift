@@ -20,8 +20,9 @@ struct Post {
     var ref: FIRDatabaseReference!
     var key: String = ""
     var type: String
+    var username: String
     
-    init(postId: String,userId: String,postText: String ,postImageURL: String,postDate: NSNumber, key: String = "", type:String){
+    init(postId: String,userId: String,postText: String ,postImageURL: String,postDate: NSNumber, key: String = "", type:String, username: String){
         self.postId = postId
         self.postDate = postDate
         self.postText = postText
@@ -30,6 +31,7 @@ struct Post {
         self.userId = userId
         self.type = type
         self.ref = FIRDatabase.database().reference()
+        self.username = username
     }
     
     init(snapshot:FIRDataSnapshot!) {
@@ -41,11 +43,12 @@ struct Post {
         self.ref = snapshot.ref
         self.key = snapshot.key
         self.type = (snapshot.value! as! NSDictionary)["type"] as! String
+        self.username =  (snapshot.value! as! NSDictionary)["username"] as! String
 
     }
     
     func toAnyObject()->[String: Any] {
-        return ["postId":self.postId,"postDate":self.postDate,"postText":self.postText,"postImageURL":self.postImageURL,"userId":self.userId, "type": self.type]
+        return ["postId":self.postId,"postDate":self.postDate,"postText":self.postText,"postImageURL":self.postImageURL,"userId":self.userId, "type": self.type, "username": self.username]
     }
     
 }

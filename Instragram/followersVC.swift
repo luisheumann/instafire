@@ -8,21 +8,24 @@
 
 import UIKit
 import Parse
-
+import FirebaseAuth
+import Firebase
 
 var user = String()
 var category = String()
 
 class followersVC: UITableViewController {
     
+    var netService = NetworkingService()
+    
     // arrays to hold data received from servers
     var usernameArray = [String]()
-    var avaArray = [PFFile]()
+    var avaArray = [UIImage]()
     
     // array showing who do we follow or who followings us
-    var followArray = [String]()
-    
-    
+   // var followArray = [String]()
+    var followArray = [User]()
+
     // default func
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,8 +59,32 @@ class followersVC: UITableViewController {
     
     
     // loading followers
-    func loadFollowers() {
+          
         
+        
+        private func loadFollowers(){
+            //  netService.fetchAllPosts {(posts) in
+            let currentUser = FIRAuth.auth()!.currentUser!
+            
+            print(currentUser.uid)
+            self.netService.fetchAllFollowers(postId: currentUser.uid) {(users) in
+          
+                    self.followArray = users
+
+           /*  self.followArray.sort(by: { (post1, post2) -> Bool in
+                   Int(post1.email)! > Int(post2.email)!
+              })*/
+            
+ 
+                self.tableView.reloadData()
+            
+        
+              // self.collectionView?.reloadData()
+            }
+       
+    
+        
+        /*
         // STEP 1. Find in FOLLOW class people following User
         // find followers of user
         let followQuery = PFQuery(className: "follow")
@@ -101,14 +128,14 @@ class followersVC: UITableViewController {
                 print(error!.localizedDescription)
             }
         })
-        
+        */
     }
     
     
     // loading followings
     func loadFollowings() {
         
-        // STEP 1. Find people followed by User
+     /*   // STEP 1. Find people followed by User
         let followQuery = PFQuery(className: "follow")
         followQuery.whereKey("follower", equalTo: user)
         followQuery.findObjectsInBackground (block: { (objects, error) -> Void in
@@ -150,13 +177,14 @@ class followersVC: UITableViewController {
                 print(error!.localizedDescription)
             }
         })
-        
+        */
     }
 
     
     // cell numb
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return usernameArray.count
+        return followArray.count
+  
     }
     
     
@@ -173,18 +201,20 @@ class followersVC: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as! followersCell
         
         // STEP 1. Connect data from serv to objects
-        cell.usernameLbl.text = usernameArray[indexPath.row]
-        avaArray[indexPath.row].getDataInBackground { (data, error) -> Void in
-            if error == nil {
-                cell.avaImg.image = UIImage(data: data!)
-            } else {
-                print(error!.localizedDescription)
-            }
-        }
+    cell.usernameLbl.text = followArray[indexPath.row].username
+        
+        let ImageUserUrl = followArray[indexPath.row].profilePictureUrl
+        let imgUserURL = URL(string: ImageUserUrl)
+        let dataUserImage = NSData(contentsOf: (imgUserURL!))
+        let imagenUser = UIImage(data: dataUserImage as! Data)!
+        
+        
+        cell.avaImg.image = imagenUser
+       
         
         
         // STEP 2. Show do user following or do not
-        let query = PFQuery(className: "follow")
+    /*    let query = PFQuery(className: "follow")
         query.whereKey("follower", equalTo: PFUser.current()!.username!)
         query.whereKey("following", equalTo: cell.usernameLbl.text!)
         query.countObjectsInBackground (block: { (count, error) -> Void in
@@ -198,13 +228,13 @@ class followersVC: UITableViewController {
                 }
             }
         })
-        
+        */
         
         // STEP 3. Hide follow button for current user
-        if cell.usernameLbl.text == PFUser.current()?.username {
+       /* if cell.usernameLbl.text == PFUser.current()?.username {
             cell.followBtn.isHidden = true
         }
-        
+        */
         return cell
     }
     
@@ -213,17 +243,56 @@ class followersVC: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         // recall cell to call further cell's data
-        let cell = tableView.cellForRow(at: indexPath) as! followersCell
+       // let cell = tableView.cellForRow(at: indexPath) as! followersCell
         
         // if user tapped on himself, go home, else go guest
-        if cell.usernameLbl.text! == PFUser.current()!.username! {
+       /* if cell.usernameLbl.text! == PFUser.current()!.username! {
             let home = self.storyboard?.instantiateViewController(withIdentifier: "homeVC") as! homeVC
             self.navigationController?.pushViewController(home, animated: true)
         } else {
             guestname.append(cell.usernameLbl.text!)
             let guest = self.storyboard?.instantiateViewController(withIdentifier: "guestVC") as! guestVC
             self.navigationController?.pushViewController(guest, animated: true)
-        }
+        }*/
+        
+
+        let uid = FIRAuth.auth()!.currentUser!.uid
+        let ref = FIRDatabase.database().reference()
+        let key = ref.child("users").childByAutoId().key
+        let currentUser = FIRAuth.auth()!.currentUser!
+        var isFollower = false
+        
+        ref.child("users").child(uid).child("following").queryOrderedByKey().observeSingleEvent(of: .value, with: { snapshot in
+            
+            if let following = snapshot.value as? [String : AnyObject] {
+                for (ke, value) in following {
+                      if value as! String == self.followArray[indexPath.row].uid {
+                 //   if value as! String == userrucio {
+                        isFollower = true
+                        
+                        ref.child("users").child(uid).child("following/\(ke)").removeValue()
+                          ref.child("users").child(self.followArray[indexPath.row].uid).child("followers/\(ke)").removeValue()
+                        
+                      //  self.tableview.cellForRow(at: indexPath)?.accessoryType = .none
+                    }
+                }
+            }
+            if !isFollower {
+                  let following = ["following/\(key)" : self.followArray[indexPath.row].uid]
+                
+                
+              
+                let followers = ["followers/\(key)" : currentUser.uid]
+                
+                ref.child("users").child(uid).updateChildValues(following)
+              ref.child("users").child(self.followArray[indexPath.row].uid).updateChildValues(followers)
+               
+                
+                
+                //  self.tableview.cellForRow(at: indexPath)?.accessoryType = .checkmark
+            }
+        })
+        ref.removeAllObservers()
     }
     
     func back(_ sender : UITabBarItem) {

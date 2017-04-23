@@ -147,7 +147,7 @@ class signUpVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
         self.view.endEditing(true)
         
         // if fields are empty
-        if (usernameTxt.text!.isEmpty || passwordTxt.text!.isEmpty || repeatPassword.text!.isEmpty || emailTxt.text!.isEmpty || fullnameTxt.text!.isEmpty || bioTxt.text!.isEmpty || webTxt.text!.isEmpty) {
+        if (usernameTxt.text!.isEmpty || passwordTxt.text!.isEmpty || repeatPassword.text!.isEmpty || emailTxt.text!.isEmpty || fullnameTxt.text!.isEmpty) {
             
             // alert message
             let alert = UIAlertController(title: "PLEASE", message: "fill all fields", preferredStyle: UIAlertControllerStyle.alert)
@@ -177,33 +177,13 @@ class signUpVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
         let email = emailTxt.text?.lowercased()
         let password = passwordTxt.text
         let fullname = fullnameTxt.text?.lowercased()
-        let bio = bioTxt.text
-        let web = webTxt.text?.lowercased()
-      
-
-        // in Edit Profile it's gonna be assigned
-    //    user["tel"] = ""
-      //  user["gender"] = ""
-        
-        // convert our image for sending to server
-        
         let avaData = UIImageJPEGRepresentation(avaImg.image!, 0.2)!
 
-        
-        
+        self.networkingService.signUp(username: username!, fullname: fullname!, country: "colombia", email: email!, pictureData: avaData, password: password!)
     
-        self.networkingService.signUp(username: bio!, firstname: web!, lastname: fullname!, country: bio!, email: email!, pictureData: avaData, password: password!)
-    
+
         
-        
-        //let avaData = UIImageJPEGRepresentation(avaImg.image!, 0.5)
-        //let avaFile = PFFile(name: "ava.jpg", data: avaData!)
-        //user["ava"] = avaFile
-        
-        // save data in server
-        
-        
-         UserDefaults.standard.set("luisheumann", forKey: "username")
+         UserDefaults.standard.set(username, forKey: "username")
     UserDefaults.standard.synchronize()
     let appDelegate : AppDelegate = UIApplication.shared.delegate as! AppDelegate
     appDelegate.login()

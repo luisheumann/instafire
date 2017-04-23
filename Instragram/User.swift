@@ -12,8 +12,7 @@ import Firebase
 struct User {
     
     var email: String!
-    var firstname: String
-    var lastname: String
+    var fullname: String
     var uid: String!
     var profilePictureUrl: String
     var country: String
@@ -27,8 +26,7 @@ struct User {
     init(snapshot: FIRDataSnapshot){
         self.username = (snapshot.value as! NSDictionary)["username"] as! String
         self.email = (snapshot.value as! NSDictionary)["email"] as! String
-        self.firstname = (snapshot.value as! NSDictionary)["firstname"] as! String
-        self.lastname = (snapshot.value as! NSDictionary)["lastname"] as! String
+        self.fullname = (snapshot.value as! NSDictionary)["fullname"] as! String
         self.uid = (snapshot.value as! NSDictionary)["uid"] as! String
         self.country = (snapshot.value as! NSDictionary)["country"] as! String
         self.profilePictureUrl = (snapshot.value as! NSDictionary)["profilePictureUrl"] as! String
@@ -38,11 +36,10 @@ struct User {
     }
     
     
-    init(username: String, email: String, firstname: String, lastname: String, uid: String, profilePictureUrl: String, country: String){
+    init(username: String, email: String, fullname: String, uid: String, profilePictureUrl: String, country: String){
         self.username = username
         self.email = email
-        self.firstname = firstname
-        self.lastname = lastname
+        self.fullname = fullname
         self.uid = uid
         self.profilePictureUrl = profilePictureUrl
         self.country = country
@@ -52,14 +49,14 @@ struct User {
     
     func getFullname() -> String{
         
-        return "\(firstname) \(lastname)"
+        return "\(fullname)"
     }
     
     
     
     
     func toAnyObject() -> [String: Any]{
-        return ["username":self.username, "email":self.email,"firstname":self.firstname,"lastname":self.lastname,"country":self.country,"uid":self.uid,"profilePictureUrl":profilePictureUrl,"isVerified":self.isVerified]
+        return ["username":self.username, "email":self.email,"fullname":self.fullname,"country":self.country,"uid":self.uid,"profilePictureUrl":profilePictureUrl,"isVerified":self.isVerified]
     }
     
     

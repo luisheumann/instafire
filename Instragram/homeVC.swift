@@ -13,6 +13,18 @@ import SDWebImage
 
 class homeVC: UICollectionViewController {
 
+      var DataPost = [Post]()
+
+    var storageRef: FIRStorageReference! {
+        
+        return FIRStorage.storage().reference()
+    }
+
+ 
+    var databaseRef: FIRDatabaseReference! {
+        
+        return FIRDatabase.database().reference()
+    }
     
     var netService = NetworkingService()
     
@@ -21,10 +33,15 @@ class homeVC: UICollectionViewController {
     
     // size of page
     var page : Int = 12
-    
+ 
     // arrays to hold server information
     var uuidArray = [String]()
-    var picArray = [PFFile]()
+    var picArray = [UIImage]()
+    var imagenget = UIImage()
+    
+    var usersArray = [User]()
+
+    var postsArray = [Post]()
     
     
     // default func
@@ -38,7 +55,7 @@ class homeVC: UICollectionViewController {
         collectionView?.backgroundColor = .white
 
         // title at the top
-        self.navigationItem.title = PFUser.current()?.username?.uppercased()
+        self.navigationItem.title = GlobalVariable.userName
         
         // pull to refresh
         refresher = UIRefreshControl()
@@ -50,7 +67,35 @@ class homeVC: UICollectionViewController {
         
         
         // load posts func
-        //loadPosts()
+      
+        
+ //let currentUser = FIRAuth.auth()!.currentUser!
+       // let currentUserRef = databaseRef.child("users/posts").child(currentUser.uid)
+       
+        print("pasa por aqui")
+        
+        //  netService.fetchAllPosts {(posts) in
+       
+        
+        
+      loadUserDetails()
+  //loadPosts()
+        fetchAllPosts()
+        
+   /*
+        let following = "G2xtDaZaXOXMg5EcLyBBYWAbSYf1"
+        let follower = "9ZlIDcCQGUfUdQANSwOoBcVtNgx2"
+        
+        self.netService.follow(follower: follower,following: following,  completed: {
+            
+            self.dismiss(animated: true, completion: nil)
+        })
+        
+        */
+        
+        
+        
+        
     }
     
     
@@ -58,7 +103,7 @@ class homeVC: UICollectionViewController {
     func refresh() {
         
         // reload posts
-        loadPosts()
+     //  loadPosts()
         
         // stop refresher animating
         refresher.endRefreshing()
@@ -70,38 +115,99 @@ class homeVC: UICollectionViewController {
         collectionView?.reloadData()
     }
     
-         
-    // load posts func
-    func loadPosts() {
-        
-        // request infomration from server
-        let query = PFQuery(className: "posts")
-        query.whereKey("username", equalTo: PFUser.current()!.username!)
-        query.limit = page
-        query.findObjectsInBackground (block: { (objects, error) -> Void in
-            if error == nil {
-                
-                // clean up
-                self.uuidArray.removeAll(keepingCapacity: false)
-                self.picArray.removeAll(keepingCapacity: false)
-                
-                // find objects related to our request
-                for object in objects! {
+    
+    func loadUserDetails() {
+            netService.fetchCurrentUser { (user) in
+                if let user = user {
                     
-                    // add found data to arrays (holders)
-                    self.uuidArray.append(object.value(forKey: "uuid") as! String)
-                    self.picArray.append(object.value(forKey: "pic") as! PFFile)
+                    
+                    let username = user.username
+                    let fullname = user.getFullname()
+                    let ImageUserUrl = user.profilePictureUrl
+                    let imgUserURL = URL(string: ImageUserUrl)
+                    let dataUserImage = NSData(contentsOf: (imgUserURL!))
+                    let imagenUser = UIImage(data: dataUserImage as! Data)!
+                    
+                    GlobalVariable.userName = username
+                    GlobalVariable.Fullname = fullname
+                    GlobalVariable.ImagenUser = imagenUser
+                    GlobalVariable.UserId = user.uid!
+                    GlobalVariable.ImagenUserUrl = ImageUserUrl
+                    
                 }
-                
-                self.collectionView?.reloadData()
-
-            } else {
-                print(error!.localizedDescription)
             }
-        })
-        
     }
     
+    
+    
+    private func fetchAllPosts(){
+      //  netService.fetchAllPosts {(posts) in
+        let currentUser = FIRAuth.auth()!.currentUser!
+    self.netService.fetchAllPosts(userId: currentUser.uid) {(posts) in
+
+            self.postsArray = posts
+            self.postsArray.sort(by: { (post1, post2) -> Bool in
+                Int(post1.postDate) > Int(post2.postDate)
+            })
+            
+           // self.tableView.reloadData()
+              self.collectionView?.reloadData()
+        }
+    }
+    
+    
+ 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ////////////////////////////////
+    // load posts func/*
+   /* func loadPosts() {
+     
+        
+        /*
+                */
+          let currentUser = FIRAuth.auth()!.currentUser!
+     
+                self.netService.fetchAllPosts(userId: currentUser.uid) {(posts) in
+                    self.postsArray = posts
+      
+                    self.uuidArray.removeAll(keepingCapacity: false)
+                    self.picArray.removeAll(keepingCapacity: false)
+                    
+                    
+                    for item in self.postsArray {
+                        print(item.userId)
+                    
+                        let imgURL = URL(string: item.postImageURL)
+                        let data = NSData(contentsOf: (imgURL!))
+                        let imagennew = UIImage(data: data as! Data)!
+                      
+                        self.picArray.append(imagennew)
+                        self.uuidArray.append(item.postId)
+                        GlobalVariable.ImagenPic = imagennew
+                        
+                    }
+                    
+                  
+                    
+               self.collectionView?.reloadData()
+                }
+                
+        
+        
+        
+    }*/
     
     // load more while scrolling down
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -113,7 +219,7 @@ class homeVC: UICollectionViewController {
     
     // paging
     func loadMore() {
-        
+        /*
         // if there is more objects
         if page <= picArray.count {
             
@@ -145,13 +251,13 @@ class homeVC: UICollectionViewController {
             })
 
         }
-        
+        */
     }
     
     
     // cell numb
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return picArray.count
+        return self.postsArray.count
     }
     
     
@@ -167,13 +273,10 @@ class homeVC: UICollectionViewController {
         
         // define cell
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! pictureCell
+
+        cell.picImg.sd_setImage(with: URL(string: self.postsArray[indexPath.row].postImageURL), placeholderImage: UIImage(named: "default-thumbnail"))
+      //  sd_image = imagennew
         
-        // get picture from the picArray
-        picArray[indexPath.row].getDataInBackground { (data, error) -> Void in
-            if error == nil {
-                cell.picImg.image = UIImage(data: data!)
-            }
-        }
         
         return cell
     }
@@ -187,54 +290,35 @@ class homeVC: UICollectionViewController {
         // define header
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "Header", for: indexPath) as! headerView
         
-       
-   
-
+                header.webTxt.text  = GlobalVariable.userName
+                header.fullnameLbl.text = GlobalVariable.Fullname
+                header.avaImg.sd_setImage(with: URL(string: GlobalVariable.ImagenUserUrl), placeholderImage: UIImage(named: "default"))
         
-        netService.fetchCurrentUser { (user) in
-            if let user = user {
-                header.webTxt.text  = user.username
-                header.fullnameLbl.text = user.getFullname()
-                header.avaImg.sd_setImage(with: URL(string: user.profilePictureUrl), placeholderImage: UIImage(named: "default"))
-               
-                
-            }
+  // COUNT POSTS
+        header.button.setTitle("edit profile", for: UIControlState())
+
+        let currentUser = FIRAuth.auth()!.currentUser!
+        self.netService.fetchNumberOfPosts(postId: currentUser.uid) { (numberOfComments) in
+        header.posts.text = String( numberOfComments )
+                   
+         }
+    
+// COUNT followers
+        
+        self.netService.fetchNumberOfFollowers(follower: currentUser.uid) { (numberOfComments) in
+            header.followers.text = String( numberOfComments )
+            
         }
         
+// COUNT followings
         
+        self.netService.fetchNumberOfFollowings(following: currentUser.uid) { (numberOfComments) in
+            header.followings.text = String( numberOfComments )
+            
+        }
+
         
-        
-        
-        header.button.setTitle("edit profile", for: UIControlState())
-        
-        /*
-        // STEP 2. Count statistics
-        // count total posts
-        let posts = PFQuery(className: "posts")
-        posts.whereKey("username", equalTo: PFUser.current()!.username!)
-        posts.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.posts.text = "\(count)"
-            }
-        })
-        
-        // count total followers
-        let followers = PFQuery(className: "follow")
-        followers.whereKey("following", equalTo: PFUser.current()!.username!)
-        followers.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.followers.text = "\(count)"
-            }
-        })
-        
-        // count total followings
-        let followings = PFQuery(className: "follow")
-        followings.whereKey("follower", equalTo: PFUser.current()!.username!)
-        followings.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.followings.text = "\(count)"
-            }
-        })
+    
         
         
         // STEP 3. Implement tap gestures
@@ -255,7 +339,7 @@ class homeVC: UICollectionViewController {
         followingsTap.numberOfTapsRequired = 1
         header.followings.isUserInteractionEnabled = true
         header.followings.addGestureRecognizer(followingsTap)
-        */
+        
         return header
     }
     
@@ -271,7 +355,7 @@ class homeVC: UICollectionViewController {
     // tapped followers label
     func followersTap() {
         
-        user = PFUser.current()!.username!
+       // user = PFUser.current()!.username!
         category = "followers"
         
         // make references to followersVC
@@ -326,5 +410,18 @@ class homeVC: UICollectionViewController {
         let post = self.storyboard?.instantiateViewController(withIdentifier: "postVC") as! postVC
         self.navigationController?.pushViewController(post, animated: true)
     }
+  
     
-}
+    
+    struct GlobalVariable{
+        static var myStruct = [String]();
+        static var UserId = String();
+        static var ImagenPic = UIImage();
+        static var ImagenUser = UIImage();
+        static var ImagenUserUrl = String();
+        static var userName = String();
+        static var Fullname = String();
+        
+    }
+
+ }

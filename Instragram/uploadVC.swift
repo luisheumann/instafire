@@ -161,9 +161,9 @@ class uploadVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
        let postId = NSUUID().uuidString
         if let imageData = UIImageJPEGRepresentation(picImg.image!, CGFloat(0.35)){
             
-            self.netService.uploadImageToFirebase(postId: postId, imageData: imageData, completion: { (url) in
+           self.netService.uploadImageToFirebase(postId: postId, imageData: imageData, completion: { (url) in
                 
-                let post = Post(postId: postId, userId: FIRAuth.auth()!.currentUser!.uid, postText: postText, postImageURL: String(describing:url), postDate: postDate, type:"IMAGE")
+            let post = Post(postId: postId, userId: FIRAuth.auth()!.currentUser!.uid, postText: postText, postImageURL: String(describing:url), postDate: postDate, type:"IMAGE", username: FIRAuth.auth()!.currentUser!.displayName!)
                 self.netService.savePostToDB(post: post, completed: {
                     self.dismiss(animated: true, completion: nil)
                 })
@@ -171,6 +171,12 @@ class uploadVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
                 
                 
             })
+            
+            
+            
+            
+            let guest = self.storyboard?.instantiateViewController(withIdentifier: "homeVC") as! homeVC
+            self.navigationController?.pushViewController(guest, animated: true)
             
             
         }
@@ -207,7 +213,7 @@ class uploadVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
                                 let imageData = UIImageJPEGRepresentation(picImg.image!, CGFloat(0.35))
                 
                 self.netService.uploadImageToFirebase2(postId: postId, imageData: imageData!, completion: { (url) in
-      let hash = Hashtags(to: too!, by: by!, hashtag: hashtag, comment: comment!, postId: postId, userId: FIRAuth.auth()!.currentUser!.uid, postText: postText, postImageURL: String(describing:url), postDate: postDate, type:"IMAGE")
+      let hash = Hashtags(to: too!, by: by!, hashtag: hashtag, comment: comment!, postId: postId, userId: FIRAuth.auth()!.currentUser!.uid, postText: postText, postImageURL: String(describing:url), postDate: postDate, type:"TEXT")
                     self.netService.saveHashtagsToDB(hashtags: hash, completed: {
                         self.dismiss(animated: true, completion: nil)
                     })
@@ -218,14 +224,7 @@ class uploadVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
                 })
                 
                 
-                /*
-                let hashtag = Hashtag(postId: postId, userId: FIRAuth.auth()!.currentUser!.uid, to: too,by: by,hashtag: hashtags, comment: comment)
-                self.netService.saveHashtagsToDB(hashtag: hashtag, completed: {
-                    self.dismiss(animated: true, completion: nil)
-                })
-                
-               
-                */
+     
                 
                 
                 

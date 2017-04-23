@@ -8,10 +8,25 @@
 
 import UIKit
 import Parse
-
+import Firebase
+import SDWebImage
 
 class feedVC: UITableViewController {
 
+        var netService = NetworkingService()
+    
+    var storageRef: FIRStorageReference! {
+        
+        return FIRStorage.storage().reference()
+    }
+    
+    
+    var databaseRef: FIRDatabaseReference! {
+        
+        return FIRDatabase.database().reference()
+    }
+    
+    
     // UI objects
     @IBOutlet weak var indicator: UIActivityIndicatorView!
     var refresher = UIRefreshControl()
@@ -26,6 +41,12 @@ class feedVC: UITableViewController {
     
     var followArray = [String]()
     
+    var usersArray = [User]()
+    
+    var postsArray = [Post]()
+    var posts = [Post]()
+    var following = [String]()
+   
     // page size
     var page : Int = 10
     
@@ -55,7 +76,7 @@ class feedVC: UITableViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(feedVC.uploaded(_:)), name: NSNotification.Name(rawValue: "uploaded"), object: nil)
         
         // calling function to load posts
-       // loadPosts()
+       loadPosts()
     }
     
     
@@ -72,76 +93,47 @@ class feedVC: UITableViewController {
     
     
     // load posts
-    func loadPosts() {
-        
-        // STEP 1. Find posts realted to people who we are following
-        let followQuery = PFQuery(className: "follow")
-        followQuery.whereKey("follower", equalTo: PFUser.current()!.username!)
-        followQuery.findObjectsInBackground (block: { (objects, error) -> Void in
-            if error == nil {
+ 
+    
+
+        func loadPosts(){
+            
+          print("entras")
+            //  netService.fetchAllPosts {(posts) in
+            //let currentUser = FIRAuth.auth()!.currentUser!
+            self.netService.fetchPosts2 {(Post) in
+              
+                self.postsArray = Post
                 
-                // clean up
-                self.followArray.removeAll(keepingCapacity: false)
+                  print (self.postsArray)
+                //self.postsArray.sort(by: { (post1, post2) -> Bool in
+               ///     Int(post1.postDate) > Int(post2.postDate)
+               // })
                 
-                // find related objects
-                for object in objects! {
-                    self.followArray.append(object.object(forKey: "following") as! String)
-                }
-                
-                // append current user to see own posts in feed
-                self.followArray.append(PFUser.current()!.username!)
-                
-                // STEP 2. Find posts made by people appended to followArray
-                let query = PFQuery(className: "posts")
-                query.whereKey("username", containedIn: self.followArray)
-                query.limit = self.page
-                query.addDescendingOrder("createdAt")
-                query.findObjectsInBackground(block: { (objects, error) -> Void in
-                    if error == nil {
-                        
-                        // clean up
-                        self.usernameArray.removeAll(keepingCapacity: false)
-                        self.avaArray.removeAll(keepingCapacity: false)
-                        self.dateArray.removeAll(keepingCapacity: false)
-                        self.picArray.removeAll(keepingCapacity: false)
-                        self.titleArray.removeAll(keepingCapacity: false)
-                        self.uuidArray.removeAll(keepingCapacity: false)
-                        
-                        // find related objects
-                        for object in objects! {
-                            self.usernameArray.append(object.object(forKey: "username") as! String)
-                            self.avaArray.append(object.object(forKey: "ava") as! PFFile)
-                            self.dateArray.append(object.createdAt)
-                            self.picArray.append(object.object(forKey: "pic") as! PFFile)
-                            self.titleArray.append(object.object(forKey: "title") as! String)
-                            self.uuidArray.append(object.object(forKey: "uuid") as! String)
-                        }
-                        
-                        // reload tableView & end spinning of refresher
-                        self.tableView.reloadData()
-                        self.refresher.endRefreshing()
-                        
-                    } else {
-                        print(error!.localizedDescription)
-                    }
-                })
-            } else {
-                print(error!.localizedDescription)
+                self.tableView.reloadData()
+                //self.collectionView?.reloadData()
+                self.tableView.reloadData()
+             self.refresher.endRefreshing()
             }
-        })
-        
-    }
+
+            
+            
+                  }
+                   //     self.tableView.reloadData()
+               //         self.refresher.endRefreshing()
+        //
     
     
     // scrolled down
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if scrollView.contentOffset.y >= scrollView.contentSize.height - self.view.frame.size.height * 2 {
-            loadMore()
+            //loadMore()
         }
     }
     
     
-    // pagination
+    // pagination/
+    /*
     func loadMore() {
         
         // if posts on the server are more than shown
@@ -212,11 +204,12 @@ class feedVC: UITableViewController {
         }
         
     }
-
+*/
 
     // cell numb
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return uuidArray.count
+        print("cantidad row \(postsArray.count)")
+        return postsArray.count
     }
     
     
@@ -227,48 +220,42 @@ class feedVC: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! postCell
         
         // connect objects with our information from arrays
-        cell.usernameBtn.setTitle(usernameArray[indexPath.row], for: UIControlState())
+        cell.usernameBtn.setTitle(postsArray[indexPath.row].username, for: UIControlState())
         cell.usernameBtn.sizeToFit()
-        cell.uuidLbl.text = uuidArray[indexPath.row]
-        cell.titleLbl.text = titleArray[indexPath.row]
+        cell.uuidLbl.text = postsArray[indexPath.row].userId!
+        cell.titleLbl.text! = postsArray[indexPath.row].username
+        print("dato necesario: \(cell.titleLbl.text!)")
         cell.titleLbl.sizeToFit()
         
-        // place profile picture
-        avaArray[indexPath.row].getDataInBackground { (data, error) -> Void in
-            cell.avaImg.image = UIImage(data: data!)
-        }
+        GlobalVariable.userName = postsArray[indexPath.row].username
         
-        // place post picture
-        picArray[indexPath.row].getDataInBackground { (data, error) -> Void in
-            cell.picImg.image = UIImage(data: data!)
-        }
+          cell.picImg.sd_setImage(with: URL(string: self.postsArray[indexPath.row].postImageURL), placeholderImage: UIImage(named: "default-thumbnail"))
         
-        // calculate post date
-        let from = dateArray[indexPath.row]
-        let now = Date()
-        let components : NSCalendar.Unit = [.second, .minute, .hour, .day, .weekOfMonth]
-        let difference = (Calendar.current as NSCalendar).components(components, from: from!, to: now, options: [])
         
-        // logic what to show: seconds, minuts, hours, days or weeks
-        if difference.second! <= 0 {
+        let fromDate = NSDate(timeIntervalSince1970: TimeInterval(self.postsArray[indexPath.row].postDate))
+        let toDate = NSDate()
+        
+        let differenceOfDate = Calendar.current.dateComponents([.second,.minute,.hour,.day,.weekOfMonth], from: fromDate as Date, to: toDate as Date)
+        if differenceOfDate.second! <= 0 {
             cell.dateLbl.text = "now"
+        } else if differenceOfDate.second! > 0 && differenceOfDate.minute! == 0 {
+            cell.dateLbl.text = "\(differenceOfDate.second!)secs."
+            
+        }else if differenceOfDate.minute! > 0 && differenceOfDate.hour! == 0 {
+            cell.dateLbl.text = "\(differenceOfDate.minute!)mins."
+            
+        }else if differenceOfDate.hour! > 0 && differenceOfDate.day! == 0 {
+            cell.dateLbl.text = "\(differenceOfDate.hour!)hrs."
+            
+        }else if differenceOfDate.day! > 0 && differenceOfDate.weekOfMonth! == 0 {
+            cell.dateLbl.text = "\(differenceOfDate.day!)dys."
+            
+        }else if differenceOfDate.weekOfMonth! > 0 {
+            cell.dateLbl.text  = "\(differenceOfDate.weekOfMonth!)wks."
+            
         }
-        if difference.second! > 0 && difference.minute! == 0 {
-            cell.dateLbl.text = "\(difference.second)s."
-        }
-        if difference.minute! > 0 && difference.hour! == 0 {
-            cell.dateLbl.text = "\(difference.minute)m."
-        }
-        if difference.hour! > 0 && difference.day! == 0 {
-            cell.dateLbl.text = "\(difference.hour)h."
-        }
-        if difference.day! > 0 && difference.weekOfMonth! == 0 {
-            cell.dateLbl.text = "\(difference.day)d."
-        }
-        if difference.weekOfMonth! > 0 {
-            cell.dateLbl.text = "\(difference.weekOfMonth)w."
-        }
-        
+   
+        /*
         
         // manipulate like button depending on did user like it or not
         let didLike = PFQuery(className: "likes")
@@ -323,14 +310,45 @@ class feedVC: UITableViewController {
             let hashvc = self.storyboard?.instantiateViewController(withIdentifier: "hashtagsVC") as! hashtagsVC
             self.navigationController?.pushViewController(hashvc, animated: true)
         }
+        */
+        
+           cell.usernameBtn.layer.setValue(indexPath, forKey: "index")
         
         return cell
     }
     
     
     // clicked username button
-    @IBAction func usernameBtn_click(_ sender: AnyObject) {
+   // @IBAction func usernameBtn_click(_ sender: AnyObject) {
+      //  let currentUser = FIRAuth.auth()!.currentUser!
         
+ 
+        // call index of button
+     //   let i = sender.layer.value(forKey: "index") as! IndexPath
+        
+        // call cell to call further cell data
+      //  let cell = tableView.cellForRow(at: i) as! postCell
+        
+       // print( cell.titleLbl.text)
+       
+        // if user tapped on himself go home, else go guest
+        
+      //  print(currentUser.displayName)
+      /*  print("mira:\(cell.usernameBtn.titleLabel?.text)")
+        
+        if postsArray[indexPath.row].username == currentUser.displayName! {
+            let home = self.storyboard?.instantiateViewController(withIdentifier: "homeVC") as! homeVC
+            self.navigationController?.pushViewController(home, animated: true)
+        } else {
+           // guestname.append(cell.usernameBtn.titleLabel!.text!)
+            let guest = self.storyboard?.instantiateViewController(withIdentifier: "guestVC") as! guestVC
+            self.navigationController?.pushViewController(guest, animated: true)
+        }*/
+        
+  //  }
+    
+    @IBAction func usernameBtn_click(_ sender: AnyObject) {
+         let currentUser = FIRAuth.auth()!.currentUser!
         // call index of button
         let i = sender.layer.value(forKey: "index") as! IndexPath
         
@@ -338,16 +356,25 @@ class feedVC: UITableViewController {
         let cell = tableView.cellForRow(at: i) as! postCell
         
         // if user tapped on himself go home, else go guest
-        if cell.usernameBtn.titleLabel?.text == PFUser.current()?.username {
+        
+        let usernameLabel = cell.usernameBtn.titleLabel?.text!
+        print("postusername titleLabel es igual :\(usernameLabel!)")
+        
+              print("postusername curriend es igual :\(currentUser.displayName!)")
+        
+        if usernameLabel! == currentUser.displayName! {
             let home = self.storyboard?.instantiateViewController(withIdentifier: "homeVC") as! homeVC
             self.navigationController?.pushViewController(home, animated: true)
         } else {
             guestname.append(cell.usernameBtn.titleLabel!.text!)
+             guestid.append(cell.uuidLbl.text!)
+            
             let guest = self.storyboard?.instantiateViewController(withIdentifier: "guestVC") as! guestVC
             self.navigationController?.pushViewController(guest, animated: true)
         }
         
     }
+    
     
     
     // clicked comment button
@@ -475,7 +502,10 @@ class feedVC: UITableViewController {
         
         
         // if post belongs to user, he can delete post, else he can't
-        if cell.usernameBtn.titleLabel?.text == PFUser.current()?.username {
+        
+           let currentUser = FIRAuth.auth()!.currentUser!
+        
+        if cell.usernameBtn.titleLabel?.text ==   currentUser.displayName{
             menu.addAction(delete)
             menu.addAction(cancel)
         } else {
@@ -495,5 +525,14 @@ class feedVC: UITableViewController {
         alert.addAction(ok)
         present(alert, animated: true, completion: nil)
     }
-    
+    struct GlobalVariable{
+        static var myStruct = [String]();
+        static var UserId = String();
+        static var ImagenPic = UIImage();
+        static var ImagenUser = UIImage();
+        static var ImagenUserUrl = String();
+        static var userName = String();
+        static var Fullname = String();
+        
+    }
 }

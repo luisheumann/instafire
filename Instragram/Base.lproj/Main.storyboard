@@ -254,10 +254,10 @@
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                     </tabBar>
                     <connections>
-                        <segue destination="4V5-2S-k6T" kind="relationship" relationship="viewControllers" id="FUF-kE-qOi"/>
-                        <segue destination="oAf-bb-EiF" kind="relationship" relationship="viewControllers" id="1Ax-kM-JgK"/>
-                        <segue destination="0zF-4X-NBk" kind="relationship" relationship="viewControllers" id="T11-fz-5by"/>
                         <segue destination="PI3-7y-HFx" kind="relationship" relationship="viewControllers" id="wNx-Bi-O2D"/>
+                        <segue destination="oAf-bb-EiF" kind="relationship" relationship="viewControllers" id="1Ax-kM-JgK"/>
+                        <segue destination="4V5-2S-k6T" kind="relationship" relationship="viewControllers" id="FUF-kE-qOi"/>
+                        <segue destination="0zF-4X-NBk" kind="relationship" relationship="viewControllers" id="T11-fz-5by"/>
                         <segue destination="7I9-Wp-bye" kind="relationship" relationship="viewControllers" id="Xy5-6Y-5jq"/>
                     </connections>
                 </tabBarController>
@@ -412,7 +412,7 @@
                 </collectionViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="o9h-Eo-hiR" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2147" y="291"/>
+            <point key="canvasLocation" x="2131" y="268"/>
         </scene>
         <!--UploadVC-->
         <scene sceneID="cVD-4G-GYK">

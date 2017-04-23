@@ -8,12 +8,14 @@
 
 import UIKit
 import Parse
-
+import Firebase
 
 var guestname = [String]()
-
+var guestid = [String]()
 class guestVC: UICollectionViewController {
     
+    
+     var netService = NetworkingService()
     // UI objects
     var refresher : UIRefreshControl!
     var page : Int = 12
@@ -22,6 +24,9 @@ class guestVC: UICollectionViewController {
     var uuidArray = [String]()
     var picArray = [PFFile]()
     
+    var usersArray = [User]()
+    
+    var postsArray = [Post]()
     
     // default func
     override func viewDidLoad() {
@@ -53,6 +58,8 @@ class guestVC: UICollectionViewController {
         
         // call load posts function
         loadPosts()
+        
+        print("caraculo:\(guestid)")
     }
     
     
@@ -75,43 +82,55 @@ class guestVC: UICollectionViewController {
         loadPosts()
     }
     
-    
+ 
+    let userId = "G2xtDaZaXOXMg5EcLyBBYWAbSYf1"
     // posts loading function
+    
+    
+    func loadUser(){
+        
+            netService.fetchCurrentUserGuesst(userId: userId) { (user) in
+ 
+                if let user = user {
+                    
+                    let username = user.username
+                    let fullname = user.getFullname()
+                    let ImageUserUrl = user.profilePictureUrl
+                    let imgUserURL = URL(string: ImageUserUrl)
+                    let dataUserImage = NSData(contentsOf: (imgUserURL!))
+                    let imagenUser = UIImage(data: dataUserImage as! Data)!
+                    
+                    GlobalVariable.userName = username
+                    GlobalVariable.Fullname = fullname
+                    GlobalVariable.ImagenUser = imagenUser
+                    GlobalVariable.UserId = user.uid!
+                    GlobalVariable.ImagenUserUrl = ImageUserUrl
+                    
+                }
+            }
+
+    }
+    
+    
     func loadPosts() {
         
-        // load posts
-        let query = PFQuery(className: "posts")
-        query.whereKey("username", equalTo: guestname.last!)
-        query.limit = page
-        query.findObjectsInBackground (block: { (objects, error) -> Void in
-            if error == nil {
-                
-                // clean up
-                self.uuidArray.removeAll(keepingCapacity: false)
-                self.picArray.removeAll(keepingCapacity: false)
-                
-                // find related objects
-                for object in objects! {
-                    
-                    // hold found information in arrays
-                    self.uuidArray.append(object.value(forKey: "uuid") as! String)
-                    self.picArray.append(object.value(forKey: "pic") as! PFFile)
-                }
-                
-                self.collectionView?.reloadData()
-                
-            } else {
-                print(error!.localizedDescription)
-            }
-        })
-        
+        self.netService.fetchAllPosts(userId: userId) {(posts) in
+            
+            self.postsArray = posts
+            self.postsArray.sort(by: { (post1, post2) -> Bool in
+                Int(post1.postDate) > Int(post2.postDate)
+            })
+            
+            // self.tableView.reloadData()
+            self.collectionView?.reloadData()
+        }
     }
     
     
     // load more while scrolling down
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if scrollView.contentOffset.y >= scrollView.contentSize.height - self.view.frame.size.height {
-            self.loadMore()
+           // self.loadMore()
         }
     }
     
@@ -157,7 +176,7 @@ class guestVC: UICollectionViewController {
     
     // cell numb
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return picArray.count
+        return postsArray.count
     }
     
     
@@ -174,14 +193,7 @@ class guestVC: UICollectionViewController {
         // define cell
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! pictureCell
         
-        // connect data from array to picImg object from pictureCell class
-        picArray[indexPath.row].getDataInBackground (block: { (data, error) -> Void in
-            if error == nil {
-                cell.picImg.image = UIImage(data: data!)
-            } else {
-                print(error!.localizedDescription)
-            }
-        })
+         cell.picImg.sd_setImage(with: URL(string: self.postsArray[indexPath.row].postImageURL), placeholderImage: UIImage(named: "default-thumbnail"))
         
         return cell
     }
@@ -194,116 +206,57 @@ class guestVC: UICollectionViewController {
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "Header", for: indexPath) as! headerView
         
         
-        // STEP 1. Load data of guest
-        let infoQuery = PFQuery(className: "_User")
-        infoQuery.whereKey("username", equalTo: guestname.last!)
-        infoQuery.findObjectsInBackground (block: { (objects, error) -> Void in
-            if error == nil {
-                
-                // shown wrong user
-                if objects!.isEmpty {
-                    // call alert
-                    let alert = UIAlertController(title: "\(guestname.last!.uppercased())", message: "is not existing", preferredStyle: UIAlertControllerStyle.alert)
-                    let ok = UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: { (UIAlertAction) -> Void in
-                        _ = self.navigationController?.popViewController(animated: true)
-                    })
-                    alert.addAction(ok)
-                    self.present(alert, animated: true, completion: nil)
-                }
-                
-                // find related to user information
-                for object in objects! {
-                    header.fullnameLbl.text = (object.object(forKey: "fullname") as? String)?.uppercased()
-                    header.bioLbl.text = object.object(forKey: "bio") as? String
-                    header.bioLbl.sizeToFit()
-                    header.webTxt.text = object.object(forKey: "web") as? String
-                    header.webTxt.sizeToFit()
-                    let avaFile : PFFile = (object.object(forKey: "ava") as? PFFile)!
-                    avaFile.getDataInBackground(block: { (data, error) -> Void in
-                        header.avaImg.image = UIImage(data: data!)
-                    })
-                }
-                
-            } else {
-                print(error?.localizedDescription ?? String())
-            }
-        })
+        header.webTxt.text  = GlobalVariable.userName
+        header.fullnameLbl.text = GlobalVariable.Fullname
+        header.avaImg.sd_setImage(with: URL(string: GlobalVariable.ImagenUserUrl), placeholderImage: UIImage(named: "default"))
+        
+        // COUNT POSTS
+        header.button.setTitle("edit profile", for: UIControlState())
+        
+       
+        self.netService.fetchNumberOfPosts(postId: userId) { (numberOfComments) in
+            header.posts.text = String( numberOfComments )
+            
+        }
+        
+        // COUNT followers
+        
+        self.netService.fetchNumberOfFollowers(follower: userId) { (numberOfComments) in
+            header.followers.text = String( numberOfComments )
+            
+        }
+        
+        // COUNT followings
+        
+        self.netService.fetchNumberOfFollowings(following: userId) { (numberOfComments) in
+            header.followings.text = String( numberOfComments )
+            
+        }
         
         
-        // STEP 2. Show do current user follow guest or do not
-        let followQuery = PFQuery(className: "follow")
-        followQuery.whereKey("follower", equalTo: PFUser.current()!.username!)
-        followQuery.whereKey("following", equalTo: guestname.last!)
-        followQuery.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                if count == 0 {
-                    header.button.setTitle("FOLLOW", for: UIControlState())
-                    header.button.backgroundColor = .lightGray
-                } else {
-                    header.button.setTitle("FOLLOWING", for: UIControlState())
-                    header.button.backgroundColor = .green
-                }
-            } else {
-                print(error?.localizedDescription ?? String())
-            }
-        })
         
         
-        // STEP 3. Count statistics
-        // count posts
-        let posts = PFQuery(className: "posts")
-        posts.whereKey("username", equalTo: guestname.last!)
-        posts.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.posts.text = "\(count)"
-            } else {
-                print(error?.localizedDescription ?? String())
-            }
-        })
         
-        // count followers
-        let followers = PFQuery(className: "follow")
-        followers.whereKey("following", equalTo: guestname.last!)
-        followers.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.followers.text = "\(count)"
-            } else {
-                print(error?.localizedDescription ?? String())
-            }
-        })
-        
-        // count followings
-        let followings = PFQuery(className: "follow")
-        followings.whereKey("follower", equalTo: guestname.last!)
-        followings.countObjectsInBackground (block: { (count, error) -> Void in
-            if error == nil {
-                header.followings.text = "\(count)"
-            } else {
-                print(error?.localizedDescription ?? String())
-            }
-        })
-        
-        
-        // STEP 4. Implement tap gestures
-        // tap to posts label
-        let postsTap = UITapGestureRecognizer(target: self, action: #selector(guestVC.postsTap))
+        // STEP 3. Implement tap gestures
+        // tap posts
+        let postsTap = UITapGestureRecognizer(target: self, action: #selector(homeVC.postsTap))
         postsTap.numberOfTapsRequired = 1
         header.posts.isUserInteractionEnabled = true
         header.posts.addGestureRecognizer(postsTap)
         
-        // tap to followers label
-        let followersTap = UITapGestureRecognizer(target: self, action: #selector(guestVC.followersTap))
+        // tap followers
+        let followersTap = UITapGestureRecognizer(target: self, action: #selector(homeVC.followersTap))
         followersTap.numberOfTapsRequired = 1
         header.followers.isUserInteractionEnabled = true
         header.followers.addGestureRecognizer(followersTap)
         
-        // tap to followings label
-        let followingsTap = UITapGestureRecognizer(target: self, action: #selector(guestVC.followingsTap))
+        // tap followings
+        let followingsTap = UITapGestureRecognizer(target: self, action: #selector(homeVC.followingsTap))
         followingsTap.numberOfTapsRequired = 1
         header.followings.isUserInteractionEnabled = true
         header.followings.addGestureRecognizer(followingsTap)
         
-        
+
         return header
     }
 
@@ -347,11 +300,22 @@ class guestVC: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         
         // send post uuid to "postuuid" variable
-        postuuid.append(uuidArray[indexPath.row])
+        postuuid.append(usersArray[indexPath.row].uid)
         
         // navigate to post view controller
         let post = self.storyboard?.instantiateViewController(withIdentifier: "postVC") as! postVC
         self.navigationController?.pushViewController(post, animated: true)
+    }
+    
+    struct GlobalVariable{
+        static var myStruct = [String]();
+        static var UserId = String();
+        static var ImagenPic = UIImage();
+        static var ImagenUser = UIImage();
+        static var ImagenUserUrl = String();
+        static var userName = String();
+        static var Fullname = String();
+        
     }
 
 }

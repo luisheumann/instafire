@@ -7,11 +7,26 @@
 //
 
 import UIKit
-import Parse
 
+import Firebase
+import SDWebImage
 
 class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
+    
+    var databaseRef: FIRDatabaseReference! {
+        
+        return FIRDatabase.database().reference()
+    }
+    
+    var storageRef: FIRStorageReference! {
+        
+        return FIRStorage.storage().reference()
+    }
+    
+    
+      var netService = NetworkingService()
+    
     // UI objects
     @IBOutlet weak var scrollView: UIScrollView!
     
@@ -150,21 +165,24 @@ class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UI
     // user information function
     func information() {
         
-        // receive profile picture
-        let ava = PFUser.current()?.object(forKey: "ava") as! PFFile
-        ava.getDataInBackground { (data, error) -> Void in
-            self.avaImg.image = UIImage(data: data!)
-        }
         
-        // receive text information
-        usernameTxt.text = PFUser.current()?.username
-        fullnameTxt.text = PFUser.current()?.object(forKey: "fullname") as? String
-        bioTxt.text = PFUser.current()?.object(forKey: "bio") as? String
-        webTxt.text = PFUser.current()?.object(forKey: "web") as? String
+        netService.fetchCurrentUser { (user) in
+            if let user = user {
+                self.usernameTxt.text = user.username
+                self.fullnameTxt.text  = user.getFullname()
+                self.emailTxt.text = user.email
+                let ImageUserUrl = user.profilePictureUrl
+                let imgUserURL = URL(string: ImageUserUrl)
+                let dataUserImage = NSData(contentsOf: (imgUserURL!))
+                let imagenUser = UIImage(data: dataUserImage as! Data)!
+                self.avaImg.image = imagenUser
+                
+                
+            }
+        }
 
-        emailTxt.text = PFUser.current()?.email
-        telTxt.text = PFUser.current()?.object(forKey: "tel") as? String
-        genderTxt.text = PFUser.current()?.object(forKey: "gender") as? String
+        
+        
     }
     
     
@@ -198,7 +216,7 @@ class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UI
     @IBAction func save_clicked(_ sender: AnyObject) {
         
         // if incorrect email according to regex
-        if !validateEmail(emailTxt.text!) {
+       /* if !validateEmail(emailTxt.text!) {
             alert("Incorrect email", message: "please provide correct email address")
             return
         }
@@ -208,17 +226,107 @@ class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UI
             alert("Incorrect web-link", message: "please provide correct website")
            return
         }
+        */
+        
+   
         
         // save filled in information
-        let user = PFUser.current()!
-        user.username = usernameTxt.text?.lowercased()
-        user.email = emailTxt.text?.lowercased()
-        user["fullname"] = fullnameTxt.text?.lowercased()
-        user["web"] = webTxt.text?.lowercased()
-        user["bio"] = bioTxt.text
+     
+        let username = usernameTxt.text?.lowercased()
+       // let email = emailTxt.text?.lowercased()
+        let fullname = fullnameTxt.text?.lowercased()
+        let imagenData = UIImageJPEGRepresentation(avaImg.image!, 0.2)!
+         
+       let userids = "SqKF1WsCPjgraUUB5EJxWVdFTrD3"
+        
+        //netService.saveUserInfoEditToDb(user: userids, fullname: fullname!,  country: "colombia", username: username!)
+        let finalEmail = emailTxt.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+        let country = "colombia"
+        
+        
+        
+        
+        ///////////////////////////////////////////////////////
+        
+        
+        let imagePath = "profileImage\(userids)/userPic.jpg"
+        
+        let imageRef = storageRef.child(imagePath)
+        
+        let metadata = FIRStorageMetadata()
+        metadata.contentType = "image/jpeg"
+        
+        imageRef.put(imagenData, metadata: metadata) { (metadata, error) in
+            if error == nil {
+                
+                FIRAuth.auth()!.currentUser!.updateEmail(finalEmail!, completion: { (error) in
+                    if error == nil {
+                        print("email updated successfully")
+                        
+                         NotificationCenter.default.post(name: Notification.Name(rawValue: "reload"), object: nil)
+                    }else {
+                        DispatchQueue.main.async(execute: {
+                            let alertView =  SCLAlertView()
+                           // alertView.showError("😁OOPS😁", subTitle: error!.localizedDescription)
+                        })
+                    }
+                })
+                
+                let changeRequest = FIRAuth.auth()!.currentUser!.profileChangeRequest()
+                changeRequest.displayName = username
+               
+                
+                if let photoURL = metadata!.downloadURL(){
+                    changeRequest.photoURL = photoURL
+                }
+                
+                changeRequest.commitChanges(completion: { (error) in
+                    if error == nil {
+                        let user = FIRAuth.auth()!.currentUser!
+                        
+                        let userInfo = ["email": user.email!,"fullname":fullname, "username": username, "country": country, "uid": user.uid, "profilePictureUrl": String(describing: user.photoURL!), "isVerified": false] as [String : Any]
+                        
+                        let userRef = self.databaseRef.child("users").child(user.uid)
+                        
+                        userRef.setValue(userInfo, withCompletionBlock: { (error, ref) in
+                            if error == nil {
+                              //  self.navigationController?.popToRootViewController(animated: true)
+                            }else {
+                                DispatchQueue.main.async(execute: {
+                                   // let alertView =  SCLAlertView()
+                                  //  alertView.showError("😁OOPS😁", subTitle: error!.localizedDescription)
+                                })
+                                
+                            }
+                        })
+                    }
+                    else {
+                        
+                        DispatchQueue.main.async(execute: {
+                            let alertView =  SCLAlertView()
+                            alertView.showError("😁OOPS😁", subTitle: error!.localizedDescription)
+                        })
+                    }
+                    
+                })
+            }else {
+                
+                DispatchQueue.main.async(execute: {
+                    let alertView =  SCLAlertView()
+                    alertView.showError("😁OOPS😁", subTitle: error!.localizedDescription)
+                })
+            }
+        }
+        
+        
+        
+        
+        
+        
+        //////////////////////////////////////////////////////////
         
         // if "tel" is empty, send empty data, else entered data
-        if telTxt.text!.isEmpty {
+        /*if telTxt.text!.isEmpty {
             user["tel"] = ""
         } else {
             user["tel"] = telTxt.text
@@ -230,8 +338,8 @@ class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UI
         } else {
             user["gender"] = genderTxt.text
         }
-        
-        // send profile picture
+        */
+       /* // send profile picture
         let avaData = UIImageJPEGRepresentation(avaImg.image!, 0.5)
         let avaFile = PFFile(name: "ava.jpg", data: avaData!)
         user["ava"] = avaFile
@@ -253,7 +361,7 @@ class editVC: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UI
                 print(error!.localizedDescription)
             }
         })
-        
+        */
     }
     
     
