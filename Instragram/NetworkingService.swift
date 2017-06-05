@@ -630,9 +630,19 @@ struct NetworkingService {
  
 
  */
- 
+ /*
         func fetchPosts2(completion: @escaping([Post])->Void){
-    
+           let idu = "G2xtDaZaXOXMg5EcLyBBYWAbSYf1"
+             let ref = FIRDatabase.database().reference()
+            ref.child("users").child(idu).orderByValue().on("value", function(keys) {
+                keys.forEach(function(keySnapshot) {
+                    ref.child("posts").child(keySnapshot.key()).once("value", function(postSnapshot) {
+                        console.log(postSnapshot.val());
+                    });
+                });
+            });*/
+            
+            /*
         var following = [String]()
         let ref = FIRDatabase.database().reference()
  
@@ -650,15 +660,23 @@ struct NetworkingService {
                             }
                         
                         }
-                        following.append(FIRAuth.auth()!.currentUser!.uid)
                         
+                        
+                        following.append(FIRAuth.auth()!.currentUser!.uid)
+                    }
+                    
+                }
+                
+            }
+            
+             })
                         ref.child("posts").queryOrderedByKey().observeSingleEvent(of: .value, with: { (snap) in
                           
                             let postsSnap = snap.value as! [String : AnyObject]
-                            for (_,post) in postsSnap {
-                             for each in following {
-                              if each == post["userId"] as? String {
-                               let followsRef = self.databaseRef.child("posts").queryOrdered(byChild: "userId").queryEqual(toValue: post["userId"] as? String!)
+                      let idu = "G2xtDaZaXOXMg5EcLyBBYWAbSYf1"
+           let ff = ["9ZlIDcCQGUfUdQANSwOoBcVtNgx2","G2xtDaZaXOXMg5EcLyBBYWAbSYf1"]
+                    
+    let followsRef = self.databaseRef.child("posts").queryOrdered(byChild: "userId").queryEqual(toValue: ff)
                                         
                                         followsRef.observe(.value, with: { (posts) in
  
@@ -671,23 +689,25 @@ struct NetworkingService {
                                                 resultArray.append(post)
                                                
                                             }
-                                            completion(resultArray)
-
+                                           GlobalVariable.globalarray = resultArray
+                                          completion( GlobalVariable.globalarray)
                                         })
+                             
                                 
-                                    }
-                                    }
-                               
-                            }
+                                
+                                
+                            
+                               // self.collectionview.reloadData()
+                            
                     
                         })
-                    }
-                }
-            }
+                    
             
-        })
-        ref.removeAllObservers()
- 
+            
+            
+    
+        //ref.removeAllObservers()
+  */
     }
 ////////////////// get user for name ///////////////
    /* func fetchUserGet(userId: String, completion: @escaping (User?)->()){
@@ -744,6 +764,7 @@ struct NetworkingService {
         static var postID = String();
         static var imageUrl = String();
         static var postText = String();
+        static var globalarray = [Post]();
     }
 
     

@@ -101,8 +101,15 @@ class feedVC: UITableViewController {
           print("entras")
             //  netService.fetchAllPosts {(posts) in
             //let currentUser = FIRAuth.auth()!.currentUser!
+            
+           // self.postsArray.removeAll(keepingCapacity: false)
+            
+
+            
             self.netService.fetchPosts2 {(Post) in
-              
+              print("post desde aqui")
+                
+                print(self.postsArray.count)
                 self.postsArray = Post
                 
                   print (self.postsArray)
@@ -111,13 +118,11 @@ class feedVC: UITableViewController {
                // })
                 
                 self.tableView.reloadData()
-                //self.collectionView?.reloadData()
-                self.tableView.reloadData()
-             self.refresher.endRefreshing()
+                self.refresher.endRefreshing()
             }
 
             
-            
+         
                   }
                    //     self.tableView.reloadData()
                //         self.refresher.endRefreshing()

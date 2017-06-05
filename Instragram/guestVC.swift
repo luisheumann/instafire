@@ -58,7 +58,7 @@ class guestVC: UICollectionViewController {
         
         // call load posts function
         loadPosts()
-        
+        loadUser()
         print("caraculo:\(guestid)")
     }
     
@@ -83,13 +83,13 @@ class guestVC: UICollectionViewController {
     }
     
  
-    let userId = "G2xtDaZaXOXMg5EcLyBBYWAbSYf1"
+   
     // posts loading function
     
     
     func loadUser(){
         
-            netService.fetchCurrentUserGuesst(userId: userId) { (user) in
+            netService.fetchCurrentUserGuesst(userId: guestid.last!) { (user) in
  
                 if let user = user {
                     
@@ -100,6 +100,9 @@ class guestVC: UICollectionViewController {
                     let dataUserImage = NSData(contentsOf: (imgUserURL!))
                     let imagenUser = UIImage(data: dataUserImage as! Data)!
                     
+                    
+                    print("data imagen 1:\(imagenUser)")
+                    print("data imagen 2:\(ImageUserUrl)")
                     GlobalVariable.userName = username
                     GlobalVariable.Fullname = fullname
                     GlobalVariable.ImagenUser = imagenUser
@@ -114,7 +117,7 @@ class guestVC: UICollectionViewController {
     
     func loadPosts() {
         
-        self.netService.fetchAllPosts(userId: userId) {(posts) in
+        self.netService.fetchAllPosts(userId: guestid.last!) {(posts) in
             
             self.postsArray = posts
             self.postsArray.sort(by: { (post1, post2) -> Bool in
@@ -205,30 +208,32 @@ class guestVC: UICollectionViewController {
         // define header
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionElementKindSectionHeader, withReuseIdentifier: "Header", for: indexPath) as! headerView
         
-        
+        print("url imagen: \(GlobalVariable.ImagenUserUrl)")
         header.webTxt.text  = GlobalVariable.userName
         header.fullnameLbl.text = GlobalVariable.Fullname
         header.avaImg.sd_setImage(with: URL(string: GlobalVariable.ImagenUserUrl), placeholderImage: UIImage(named: "default"))
+        
+        
         
         // COUNT POSTS
         header.button.setTitle("edit profile", for: UIControlState())
         
        
-        self.netService.fetchNumberOfPosts(postId: userId) { (numberOfComments) in
+        self.netService.fetchNumberOfPosts(postId: guestid.last!) { (numberOfComments) in
             header.posts.text = String( numberOfComments )
             
         }
         
         // COUNT followers
         
-        self.netService.fetchNumberOfFollowers(follower: userId) { (numberOfComments) in
+        self.netService.fetchNumberOfFollowers(follower: guestid.last!) { (numberOfComments) in
             header.followers.text = String( numberOfComments )
             
         }
         
         // COUNT followings
         
-        self.netService.fetchNumberOfFollowings(following: userId) { (numberOfComments) in
+        self.netService.fetchNumberOfFollowings(following: guestid.last!) { (numberOfComments) in
             header.followings.text = String( numberOfComments )
             
         }
